@@ -1,9 +1,24 @@
 #!/usr/bin/env python
 
 Import("env")
-Import("env_modules")
 
-env_jolt = env_modules.Clone()
+env_jolt = env.Clone()
 
-# Godot source files
-env_jolt.add_source_files(env.modules_sources, "*.cpp")
+# To build Jolt, for now: (with gcc, for example)
+#   $ cd joltphysics/Build
+#   $ ./cmake_linux_clang_gcc.sh Debug g++
+#   $ make -j 8
+
+# include dirs
+env_jolt.Append(CPPPATH=["#modules/jolt/joltphysics"])
+
+# this folder should contain libJolt.a
+# it is appended to the global env, not env_jolt
+env.Append(LIBPATH=["#modules/jolt/joltphysics/Build"])
+env.Append(LIBS=["Jolt"])
+
+# source files
+env_jolt.add_source_files(env_jolt.modules_sources, "*.cpp")
+
+# Jolt has some comments ending in backslash
+env_jolt.Append(CCFLAGS=["-Wno-comment"])
