@@ -10,9 +10,9 @@
 #include <Jolt/Physics/Body/BodyInterface.h>
 
 class JoltPhysicsServer3D : public GodotPhysicsServer3D {
-    GDCLASS(JoltPhysicsServer3D, GodotPhysicsServer3D);
+	GDCLASS(JoltPhysicsServer3D, GodotPhysicsServer3D);
 
-    mutable RID_PtrOwner<JPH::Body, true> own_bodies;
+	mutable RID_PtrOwner<JPH::Body, true> own_bodies;
 
 public:
 
@@ -23,8 +23,8 @@ public:
 	/* AREA API */
 
 	/* BODY API */
-    
-    virtual RID body_create() override;
+	
+	virtual RID body_create() override;
 
 	/* SOFT BODY */
 
@@ -35,17 +35,17 @@ public:
 	virtual void free(RID p_rid) override;
 
 private:
-    JPH::PhysicsSystem Physics;
+	JPH::PhysicsSystem Physics;
 
-    // Internals
+	// Internals
 
-    const JPH::BodyID& get_body_id(RID p_rid) const {
-        return own_bodies.get_or_null(p_rid)->GetID();
-    }
+	const JPH::BodyID& get_body_id(RID p_rid) const {
+		return own_bodies.get_or_null(p_rid)->GetID();
+	}
 
-    const JPH::BodyInterface& Bodies() {
-        return Physics.GetBodyInterfaceNoLock();
-    }
+	const JPH::BodyInterface& Bodies() {
+		return Physics.GetBodyInterfaceNoLock();
+	}
 
 };
 
