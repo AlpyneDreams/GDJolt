@@ -7,9 +7,8 @@
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/Body.h>
-#include <Jolt/Physics/Body/BodyInterface.h>
-#include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/PhysicsSystem.h>
+#include <Jolt/Physics/Collision/Shape/Shape.h>
 
 class JoltPhysicsServer3D : public GodotPhysicsServer3D {
 	GDCLASS(JoltPhysicsServer3D, GodotPhysicsServer3D);
@@ -55,6 +54,98 @@ public:
 
 	virtual RID body_create() override;
 
+	//virtual void body_set_space(RID p_body, RID p_space) override;
+	//virtual RID body_get_space(RID p_body) const override;
+
+	virtual void body_set_mode(RID p_body, BodyMode p_mode) override;
+	virtual BodyMode body_get_mode(RID p_body) const override;
+
+	virtual void body_add_shape(RID p_body, RID p_shape, const Transform3D &p_transform = Transform3D(), bool p_disabled = false) override;
+	virtual void body_set_shape(RID p_body, int p_shape_idx, RID p_shape) override;
+	//virtual void body_set_shape_transform(RID p_body, int p_shape_idx, const Transform3D &p_transform) override;
+
+	virtual int body_get_shape_count(RID p_body) const override;
+	virtual RID body_get_shape(RID p_body, int p_shape_idx) const override;
+/*	virtual Transform3D body_get_shape_transform(RID p_body, int p_shape_idx) const override;
+
+	virtual void body_set_shape_disabled(RID p_body, int p_shape_idx, bool p_disabled) override;
+
+	virtual void body_remove_shape(RID p_body, int p_shape_idx) override;
+	virtual void body_clear_shapes(RID p_body) override;
+
+	virtual void body_attach_object_instance_id(RID p_body, ObjectID p_id) override;
+	virtual ObjectID body_get_object_instance_id(RID p_body) const override;
+
+	virtual void body_set_enable_continuous_collision_detection(RID p_body, bool p_enable) override;
+	virtual bool body_is_continuous_collision_detection_enabled(RID p_body) const override;
+
+	virtual void body_set_collision_layer(RID p_body, uint32_t p_layer) override;
+	virtual uint32_t body_get_collision_layer(RID p_body) const override;
+
+	virtual void body_set_collision_mask(RID p_body, uint32_t p_mask) override;
+	virtual uint32_t body_get_collision_mask(RID p_body) const override;
+
+	virtual void body_set_collision_priority(RID p_body, real_t p_priority) override;
+	virtual real_t body_get_collision_priority(RID p_body) const override;
+
+	virtual void body_set_user_flags(RID p_body, uint32_t p_flags) override;
+	virtual uint32_t body_get_user_flags(RID p_body) const override;
+
+	virtual void body_set_param(RID p_body, BodyParameter p_param, const Variant &p_value) override;
+	virtual Variant body_get_param(RID p_body, BodyParameter p_param) const override;
+
+	virtual void body_reset_mass_properties(RID p_body) override;
+
+	virtual void body_set_state(RID p_body, BodyState p_state, const Variant &p_variant) override;
+	virtual Variant body_get_state(RID p_body, BodyState p_state) const override;
+
+	virtual void body_apply_central_impulse(RID p_body, const Vector3 &p_impulse) override;
+	virtual void body_apply_impulse(RID p_body, const Vector3 &p_impulse, const Vector3 &p_position = Vector3()) override;
+	virtual void body_apply_torque_impulse(RID p_body, const Vector3 &p_impulse) override;
+
+	virtual void body_apply_central_force(RID p_body, const Vector3 &p_force) override;
+	virtual void body_apply_force(RID p_body, const Vector3 &p_force, const Vector3 &p_position = Vector3()) override;
+	virtual void body_apply_torque(RID p_body, const Vector3 &p_torque) override;
+
+	virtual void body_add_constant_central_force(RID p_body, const Vector3 &p_force) override;
+	virtual void body_add_constant_force(RID p_body, const Vector3 &p_force, const Vector3 &p_position = Vector3()) override;
+	virtual void body_add_constant_torque(RID p_body, const Vector3 &p_torque) override;
+
+	virtual void body_set_constant_force(RID p_body, const Vector3 &p_force) override;
+	virtual Vector3 body_get_constant_force(RID p_body) const override;
+
+	virtual void body_set_constant_torque(RID p_body, const Vector3 &p_torque) override;
+	virtual Vector3 body_get_constant_torque(RID p_body) const override;
+
+	virtual void body_set_axis_velocity(RID p_body, const Vector3 &p_axis_velocity) override;
+
+	virtual void body_set_axis_lock(RID p_body, BodyAxis p_axis, bool p_lock) override;
+	virtual bool body_is_axis_locked(RID p_body, BodyAxis p_axis) const override;
+
+	virtual void body_add_collision_exception(RID p_body, RID p_body_b) override;
+	virtual void body_remove_collision_exception(RID p_body, RID p_body_b) override;
+	virtual void body_get_collision_exceptions(RID p_body, List<RID> *p_exceptions) override;
+
+	virtual void body_set_contacts_reported_depth_threshold(RID p_body, real_t p_threshold) override;
+	virtual real_t body_get_contacts_reported_depth_threshold(RID p_body) const override;
+
+	virtual void body_set_omit_force_integration(RID p_body, bool p_omit) override;
+	virtual bool body_is_omitting_force_integration(RID p_body) const override;
+
+	virtual void body_set_max_contacts_reported(RID p_body, int p_contacts) override;
+	virtual int body_get_max_contacts_reported(RID p_body) const override;
+
+	virtual void body_set_state_sync_callback(RID p_body, const Callable &p_callable) override;
+	virtual void body_set_force_integration_callback(RID p_body, const Callable &p_callable, const Variant &p_udata = Variant()) override;
+
+	virtual void body_set_ray_pickable(RID p_body, bool p_enable) override;
+
+	virtual bool body_test_motion(RID p_body, const MotionParameters &p_parameters, MotionResult *r_result = nullptr) override;
+
+	// this function only works on physics process, errors and returns null otherwise
+	virtual PhysicsDirectBodyState3D *body_get_direct_state(RID p_body) override;
+*/
+
 	/* SOFT BODY */
 
 	/* JOINT API */
@@ -86,10 +177,9 @@ private:
 		return own_shapes.has(p_rid) ? own_shapes[p_rid] : nullptr;
 	}
 
-	JPH::BodyInterface& Bodies() { return Physics.GetBodyInterfaceNoLock(); }
-	const JPH::BodyInterface& Bodies() const { return Physics.GetBodyInterfaceNoLock(); }
-	JPH::BodyInterface& BodiesLock() { return Physics.GetBodyInterface(); }
-	const JPH::BodyInterface& BodiesLock() const { return Physics.GetBodyInterface(); }
+	// TODO: Use GetBodyInterfaceNoLock where possible.
+	JPH::BodyInterface& Bodies() { return Physics.GetBodyInterface(); }
+	const JPH::BodyInterface& Bodies() const { return Physics.GetBodyInterface(); }
 };
 
 #endif // GDJOLT_H

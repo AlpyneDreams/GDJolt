@@ -16,22 +16,6 @@ namespace Layers
 	static constexpr uint8_t NUM_LAYERS = 2;
 };
 
-// Function that determines if two object layers can collide
-static bool GDObjectCanCollide(JPH::ObjectLayer inObject1, JPH::ObjectLayer inObject2)
-{
-    using namespace JPH;
-	switch (inObject1)
-	{
-	case Layers::NON_MOVING:
-		return inObject2 == Layers::MOVING; // Non moving only collides with moving
-	case Layers::MOVING:
-		return true; // Moving collides with everything
-	default:
-		JPH_ASSERT(false);
-		return false;
-	}
-};
-
 // Each broadphase layer results in a separate bounding volume tree in the broad phase. You at least want to have
 // a layer for non-moving and moving objects to avoid having to update a tree full of static objects every frame.
 // You can have a 1-on-1 mapping between object layers and broadphase layers (like in this case) but if you have
@@ -63,7 +47,7 @@ public:
 
 	virtual JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override
 	{
-        using namespace JPH;
+		using namespace JPH;
 		JPH_ASSERT(inLayer < Layers::NUM_LAYERS);
 		return mObjectToBroadPhase[inLayer];
 	}
@@ -71,7 +55,7 @@ public:
 #if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
 	virtual const char *			GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override
 	{
-        using namespace JPH;
+		using namespace JPH;
 		switch ((BroadPhaseLayer::Type)inLayer)
 		{
 		case (BroadPhaseLayer::Type)BroadPhaseLayers::NON_MOVING:	return "NON_MOVING";
@@ -84,22 +68,6 @@ public:
 private:
 	JPH::BroadPhaseLayer					mObjectToBroadPhase[Layers::NUM_LAYERS];
 };
-
-// Function that determines if two broadphase layers can collide
-static bool GDBroadPhaseCanCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2)
-{
-    using namespace JPH;
-	switch (inLayer1)
-	{
-	case Layers::NON_MOVING:
-		return inLayer2 == BroadPhaseLayers::MOVING;
-	case Layers::MOVING:
-		return true;	
-	default:
-		JPH_ASSERT(false);
-		return false;
-	}
-}
 
 
 #endif // JOLT_LAYERS_H
