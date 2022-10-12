@@ -25,5 +25,5 @@ env_jolt.add_source_files(env_jolt.modules_sources, "*.cpp")
 env_jolt.Append(CCFLAGS=["-Wno-comment"])
 
 # For compatibility with debug binaries
-env_jolt.Append(CPPDEFINES=["JPH_PROFILE_ENABLED"])
+env_jolt.Append(CPPDEFINES=["JPH_PROFILE_ENABLED", "JPH_ENABLE_ASSERTS"])
 
