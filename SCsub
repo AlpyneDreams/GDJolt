@@ -7,6 +7,7 @@ env_jolt = env.Clone()
 # To build Jolt, for now: (with gcc, for example)
 #   $ cd joltphysics/Build
 #   $ ./cmake_linux_clang_gcc.sh Debug g++
+#   $ cd Linux_Debug
 #   $ make -j 8
 
 # include dirs
@@ -14,7 +15,7 @@ env_jolt.Append(CPPPATH=["#modules/jolt/joltphysics"])
 
 # this folder should contain libJolt.a
 # it is appended to the global env, not env_jolt
-env.Append(LIBPATH=["#modules/jolt/joltphysics/Build"])
+env.Append(LIBPATH=["#modules/jolt/joltphysics/Build/Linux_Debug"])
 env.Append(LIBS=["Jolt"])
 
 # source files
@@ -22,3 +23,7 @@ env_jolt.add_source_files(env_jolt.modules_sources, "*.cpp")
 
 # Jolt has some comments ending in backslash
 env_jolt.Append(CCFLAGS=["-Wno-comment"])
+
+# For compatibility with debug binaries
+env_jolt.Append(CPPDEFINES=["JPH_PROFILE_ENABLED"])
+
