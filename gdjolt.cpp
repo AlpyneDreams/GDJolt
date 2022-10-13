@@ -97,7 +97,10 @@ void Jolt::free(RID p_rid) {
 
 	// Check each owner!
 	if (own_bodies.has(p_rid)) {
-		Bodies().DestroyBody(get_body_id(p_rid));
+		const JPH::BodyID id = get_body_id(p_rid);
+		if (Bodies().IsAdded(id))
+			Bodies().RemoveBody(id);
+		Bodies().DestroyBody(id);
 		own_bodies.erase(p_rid);
 	} else if (own_shapes.has(p_rid)) {
 		delete get_shape(p_rid);
