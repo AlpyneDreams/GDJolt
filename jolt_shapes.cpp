@@ -39,9 +39,9 @@ JOLT_SHAPE_CREATE(sphere,			JPH::SphereShape);
 JOLT_SHAPE_CREATE(box,				JPH::BoxShape);
 JOLT_SHAPE_CREATE(capsule,			JPH::CapsuleShape);
 JOLT_SHAPE_CREATE(cylinder,			JPH::CylinderShape);
-JOLT_SHAPE_CREATE(convex_polygon,	JPH::ConvexHullShape);
-JOLT_SHAPE_CREATE(concave_polygon,	JPH::MeshShape);
-JOLT_SHAPE_CREATE(heightmap,		JPH::HeightFieldShape);
+//JOLT_SHAPE_CREATE(convex_polygon,	JPH::ConvexHullShape);
+//JOLT_SHAPE_CREATE(concave_polygon,	JPH::MeshShape);
+//JOLT_SHAPE_CREATE(heightmap,		JPH::HeightFieldShape);
 //JOLT_SHAPE_CREATE(custom, ...)
 
 void Jolt::shape_set_data(RID p_shape, const Variant &p_data) {
