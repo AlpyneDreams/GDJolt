@@ -29,6 +29,8 @@ RID Jolt::body_create() {
 	
 	Body* body = Bodies().CreateBody(settings);
 
+	// Body will be added to the world only once it has a shape
+
 	// Assign to RID
 	own_bodies.insert(rid, body->GetID().GetIndexAndSequenceNumber());
 	
@@ -85,7 +87,10 @@ void Jolt::body_add_shape(RID p_body, RID p_shape, const Transform3D &p_transfor
 	// If body has no shapes yet...
 	if (!Bodies().IsAdded(body)) {
 		Bodies().SetShape(body, shape, true, EActivation::DontActivate);
+
+		// Add the body to the world. This happens as soon as it has at least one shape.
 		Bodies().AddBody(body, EActivation::Activate);
+
 		// TODO: TEMP
 		Bodies().SetLinearVelocity(body, Vec3(0.0f, -5.0f, 0.0f));
 		return;
@@ -130,10 +135,9 @@ void Jolt::body_set_shape(RID p_body, int idx, RID p_shape) {
 			// Setting the one main shape
 			Bodies().SetShape(body, shape, true, EActivation::Activate);
 		} else {
-			// TODO: Create compound shape...
-			ERR_PRINT("[Jolt] Compound shapes not yet implemented.");
+			ERR_PRINT("[Jolt] body_set_shape: Invalid shape index");
 		}
-	} else {
+	} else { // Compound Shape
 		const CompoundShape* shapes = static_cast<const CompoundShape*>(oldShape.GetPtr());
 		
 		if (idx < 0 || uint(idx) >= shapes->GetNumSubShapes()) {
@@ -185,4 +189,60 @@ RID Jolt::body_get_shape(RID p_body, int idx) const {
 		return RID::from_uint64(shape->GetUserData());
 	else
 		return RID();
+}
+
+void Jolt::body_remove_shape(RID p_body, int idx) {
+	printf("[Jolt] body_remove_shape\n");
+
+	Base::body_remove_shape(p_body, idx);
+
+	using namespace JPH;
+	BodyID body = get_body_id(p_body);
+	ERR_FAIL_COND(body.IsInvalid());
+
+	// If body has no shapes yet...
+	if (!Bodies().IsAdded(body)) {
+		ERR_PRINT("[Jolt] body_remove_shape: Body has no shapes yet.");
+		return;
+	}
+
+	// Get current shape...
+	RefConst<Shape> oldShape = Bodies().GetShape(body);
+	if (oldShape->GetType() != EShapeType::Compound) {
+		if (idx == 0) {
+			// Removing the one main shape
+			Bodies().RemoveBody(body);
+		} else {
+			ERR_PRINT("[Jolt] body_remove_shape: Invalid shape index");
+		}
+	} else { // Compound Shape
+		const CompoundShape* shapes = static_cast<const CompoundShape*>(oldShape.GetPtr());
+
+		uint numShapes = shapes->GetNumSubShapes();
+		if (numShapes == 1) {
+			// Removing the last shape
+			Bodies().RemoveBody(body);
+			return;
+		}
+		
+		if (idx < 0 || uint(idx) >= numShapes) {
+			ERR_PRINT("[Jolt] body_remove_shape: Invalid shape index");
+			return;
+		}
+
+		// TODO: Remove shape from compound shape...
+		ERR_PRINT("[Jolt] Compound shapes not yet implemented.");
+	}
+}
+
+void Jolt::body_clear_shapes(RID p_body) {
+	printf("[Jolt] body_clear_shapes\n");
+	
+	Base::body_clear_shapes(p_body);
+
+	JPH::BodyID body = get_body_id(p_body);
+	ERR_FAIL_COND(body.IsInvalid());
+
+	// Simply remove it from the world.
+	Bodies().RemoveBody(body);
 }

@@ -66,13 +66,14 @@ public:
 
 	virtual int body_get_shape_count(RID p_body) const override;
 	virtual RID body_get_shape(RID p_body, int p_shape_idx) const override;
-/*	virtual Transform3D body_get_shape_transform(RID p_body, int p_shape_idx) const override;
+	//virtual Transform3D body_get_shape_transform(RID p_body, int p_shape_idx) const override;
 
-	virtual void body_set_shape_disabled(RID p_body, int p_shape_idx, bool p_disabled) override;
+	//virtual void body_set_shape_disabled(RID p_body, int p_shape_idx, bool p_disabled) override;
 
 	virtual void body_remove_shape(RID p_body, int p_shape_idx) override;
 	virtual void body_clear_shapes(RID p_body) override;
 
+/*
 	virtual void body_attach_object_instance_id(RID p_body, ObjectID p_id) override;
 	virtual ObjectID body_get_object_instance_id(RID p_body) const override;
 
