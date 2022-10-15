@@ -9,8 +9,60 @@
 // TEMP
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 
-using Jolt = JoltPhysicsServer3D;
-using Base = GodotPhysicsServer3D;
+using Jolt 		= JoltPhysicsServer3D;
+using Base		= GodotPhysicsServer3D;
+using Shapes	= JPH::MutableCompoundShape;
+
+using namespace JPH;
+
+// Jolt does not like CompoundShapes with zero shapes, so we add
+// a dummy shape and set this userdata value to indicate a shapeless body.
+#define NULL_SHAPE UINT32_MAX
+
+// Locks a body to mutate its shapes.
+struct ShapesLock {
+	const BodyInterface& bodies;
+	const BodyID id;
+	BodyLockWrite lock;
+	const bool succeeded;
+	Body* body;
+	Shapes* shapes;
+	Vec3 oldCenter;
+
+	ShapesLock(PhysicsSystem& physics, BodyID& id)
+		: bodies(physics.GetBodyInterfaceNoLock())
+		, id(id)
+		, lock(physics.GetBodyLockInterface(), id)
+		, succeeded(lock.Succeeded())
+		, body(succeeded ? &lock.GetBody() : nullptr) {
+		if (succeeded) {
+			// This is what MutableCompoundShapeTest does.
+			shapes = static_cast<Shapes *>(const_cast<Shape *>(body->GetShape()));
+			oldCenter = shapes->GetCenterOfMass();
+			
+		}
+	}
+
+	operator bool () const { return succeeded; }
+	Shapes* operator -> () const { return shapes; }
+	Shapes* operator * () const { return shapes; }
+
+	~ShapesLock() {
+			
+		if (succeeded) {
+
+			// Last shape removed, add a null shape
+			if (shapes->GetNumSubShapes() == 0) {
+				printf("[Jolt] Removed all shapes from body %u, adding null shape.\n", id.GetIndex());
+				shapes->AddShape(Vec3::sZero(), Quat::sIdentity(), new SphereShape(1.0f), NULL_SHAPE);
+				shapes->SetUserData(NULL_SHAPE);
+			}
+
+			shapes->AdjustCenterOfMass();
+			bodies.NotifyShapeChanged(id, oldCenter, true, EActivation::Activate);
+		}
+	}
+};
 
 /* BODY API */
 
@@ -20,19 +72,27 @@ RID Jolt::body_create() {
 	
 	RID rid = Base::body_create();
 
-	// TODO: Should start out with no shapes! But JPH requires at least one shape.
-	// Placeholder shape
-	SphereShapeSettings shape = SphereShapeSettings(1.0f);
+	MutableCompoundShapeSettings* shapes = new MutableCompoundShapeSettings;
+
+	// TODO: Should start with no shapes! But JPH requires at least one shape.
+	shapes->AddShape(Vec3::sZero(), Quat::sIdentity(), new SphereShape(1.0f), NULL_SHAPE);
+	shapes->mUserData = NULL_SHAPE;
 	
 	// Create body
-	BodyCreationSettings settings(shape.Create().Get(), Vec3(0.0f, 0.0f, 0.0f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
+	BodyCreationSettings settings(
+		shapes,
+		Vec3(0.0f, 0.0f, 0.0f), Quat::sIdentity(),
+		EMotionType::Dynamic, Layers::MOVING
+	);
 	
-	Body* body = Bodies().CreateBody(settings);
+	// Create body and add it to the world
+	BodyID body = Bodies().CreateAndAddBody(settings, EActivation::Activate); // TODO: Don't activate
 
-	// Body will be added to the world only once it has a shape
+	// TODO: TEMP
+	Bodies().SetLinearVelocity(body, Vec3(0.0f, -5.0f, 0.0f));
 
 	// Assign to RID
-	own_bodies.insert(rid, body->GetID().GetIndexAndSequenceNumber());
+	own_bodies.insert(rid, body.GetIndexAndSequenceNumber());
 	
 	return rid;
 }
@@ -76,36 +136,23 @@ void Jolt::body_add_shape(RID p_body, RID p_shape, const Transform3D &p_transfor
 
 	Base::body_add_shape(p_body, p_shape, p_transform, p_disabled);
 
-	using namespace JPH;
-	BodyID body = get_body_id(p_body);
-	ERR_FAIL_COND(body.IsInvalid());
+	BodyID id = get_body_id(p_body);
+	ERR_FAIL_COND(id.IsInvalid());
 	
 	// Get shape
 	Shape* shape = get_shape(p_shape);
 	ERR_FAIL_COND(!shape);
 
-	// If body has no shapes yet...
-	if (!Bodies().IsAdded(body)) {
-		Bodies().SetShape(body, shape, true, EActivation::DontActivate);
+	if (ShapesLock shapes = ShapesLock(Physics, id)) {
+		Vec3 pos = ToJolt(p_transform.origin);
+		Quat rot = Quat::sIdentity(); // TODO
 
-		// Add the body to the world. This happens as soon as it has at least one shape.
-		Bodies().AddBody(body, EActivation::Activate);
-
-		// TODO: TEMP
-		Bodies().SetLinearVelocity(body, Vec3(0.0f, -5.0f, 0.0f));
-		return;
-	}
-
-	// Get current shape...
-	RefConst<Shape> oldShape = Bodies().GetShape(body);
-	if (oldShape->GetType() != EShapeType::Compound) {
-		// TODO: Create compound shape...
-		ERR_PRINT("[Jolt] Compound shapes not yet implemented.");
-	} else {
-		const CompoundShape* shapes = static_cast<const CompoundShape*>(oldShape.GetPtr());
-
-		// TODO: Add shape to compound...
-		ERR_PRINT("[Jolt] Compound shapes not yet implemented.");
+		if (shapes->GetUserData() == NULL_SHAPE) {
+			// First shape...
+			shapes->RemoveShape(0);
+			shapes->SetUserData(0);
+		}
+		shapes->AddShape(pos, rot, shape, p_shape.get_id());
 	}
 }
 
@@ -114,81 +161,44 @@ void Jolt::body_set_shape(RID p_body, int idx, RID p_shape) {
 
 	Base::body_set_shape(p_body, idx, p_shape);
 
-	using namespace JPH;
-	BodyID body = get_body_id(p_body);
-	ERR_FAIL_COND(body.IsInvalid());
+	BodyID id = get_body_id(p_body);
+	ERR_FAIL_COND(id.IsInvalid());
 	
 	// Get shape
 	Shape* shape = get_shape(p_shape);
 	ERR_FAIL_COND(!shape);
 
-	// If body has no shapes yet...
-	if (!Bodies().IsAdded(body)) {
-		ERR_PRINT("[Jolt] body_set_shape: Body has no shapes yet.");
-		return;
-	}
+	if (ShapesLock shapes = ShapesLock(Physics, id)) {
+		Vec3 pos = Vec3(); // TODO: ?
+		Quat rot = Quat::sIdentity(); // TODO: ?
 
-	// Get current shape...
-	RefConst<Shape> oldShape = Bodies().GetShape(body);
-	if (oldShape->GetType() != EShapeType::Compound) {
-		if (idx == 0) {
-			// Setting the one main shape
-			Bodies().SetShape(body, shape, true, EActivation::Activate);
-		} else {
-			ERR_PRINT("[Jolt] body_set_shape: Invalid shape index");
-		}
-	} else { // Compound Shape
-		const CompoundShape* shapes = static_cast<const CompoundShape*>(oldShape.GetPtr());
-		
 		if (idx < 0 || uint(idx) >= shapes->GetNumSubShapes()) {
-			ERR_PRINT("[Jolt] body_set_shape: Invalid shape index");
-			return;
+			ERR_FAIL_MSG("[Jolt] body_set_shape: Invalid index");
 		}
 
-		// TODO: Add shape to compound...
-		ERR_PRINT("[Jolt] Compound shapes not yet implemented.");
+		shapes->ModifyShape(idx, pos, rot, shape);
 	}
 }
 
 int Jolt::body_get_shape_count(RID p_body) const {
-	using namespace JPH;
 	BodyID body = get_body_id(p_body);
 	ERR_FAIL_COND_V(body.IsInvalid(), Base::body_get_shape_count(p_body));
 	
-	// If body has no shapes yet...
-	if (!Bodies().IsAdded(body)) {
-		return 0;
-	}
-
-	RefConst<Shape> shape = Bodies().GetShape(body);
-
-	// Body is either compound or has one shape
-	if (shape->GetType() == EShapeType::Compound)
-		return static_cast<const CompoundShape*>(shape.GetPtr())->GetNumSubShapes();
-	else
-		return 1;
+	const Shapes* shapes = get_body_shapes(body);
+	return shapes->GetUserData() == NULL_SHAPE ? 0 : shapes->GetNumSubShapes();
 }
 
 RID Jolt::body_get_shape(RID p_body, int idx) const {
-	using namespace JPH;
 	BodyID body = get_body_id(p_body);
 	ERR_FAIL_COND_V(body.IsInvalid(), Base::body_get_shape(p_body, idx));
 
-	RefConst<Shape> shape = Bodies().GetShape(body);
+	const Shapes* shapes = get_body_shapes(body);
 
-	if (shape->GetType() == EShapeType::Compound) {
-		const CompoundShape* shapes = static_cast<const CompoundShape*>(shape.GetPtr());
-		
-		if (idx < 0 || uint(idx) >= shapes->GetNumSubShapes())
-			return RID();
-		
-		return RID::from_uint64(
-			shapes->GetSubShape(idx).mShape->GetUserData()
-		);
-	} else if (idx == 0)
-		return RID::from_uint64(shape->GetUserData());
-	else
-		return RID();
+	if (idx < 0 || uint(idx) >= shapes->GetNumSubShapes()) {
+		ERR_FAIL_V_MSG(RID(), "[Jolt] body_get_shape: Invalid index");
+	}
+
+	return RID::from_uint64(shapes->GetSubShape(idx).mUserData);
 }
 
 void Jolt::body_remove_shape(RID p_body, int idx) {
@@ -196,42 +206,16 @@ void Jolt::body_remove_shape(RID p_body, int idx) {
 
 	Base::body_remove_shape(p_body, idx);
 
-	using namespace JPH;
 	BodyID body = get_body_id(p_body);
 	ERR_FAIL_COND(body.IsInvalid());
 
-	// If body has no shapes yet...
-	if (!Bodies().IsAdded(body)) {
-		ERR_PRINT("[Jolt] body_remove_shape: Body has no shapes yet.");
-		return;
-	}
-
-	// Get current shape...
-	RefConst<Shape> oldShape = Bodies().GetShape(body);
-	if (oldShape->GetType() != EShapeType::Compound) {
-		if (idx == 0) {
-			// Removing the one main shape
-			Bodies().RemoveBody(body);
-		} else {
-			ERR_PRINT("[Jolt] body_remove_shape: Invalid shape index");
-		}
-	} else { // Compound Shape
-		const CompoundShape* shapes = static_cast<const CompoundShape*>(oldShape.GetPtr());
-
+	if (ShapesLock shapes = ShapesLock(Physics, body)) {
 		uint numShapes = shapes->GetNumSubShapes();
-		if (numShapes == 1) {
-			// Removing the last shape
-			Bodies().RemoveBody(body);
-			return;
-		}
-		
-		if (idx < 0 || uint(idx) >= numShapes) {
-			ERR_PRINT("[Jolt] body_remove_shape: Invalid shape index");
-			return;
-		}
 
-		// TODO: Remove shape from compound shape...
-		ERR_PRINT("[Jolt] Compound shapes not yet implemented.");
+		ERR_FAIL_COND_MSG(shapes->GetUserData() == NULL_SHAPE, "[Jolt] body_remove_shape: No shapes to remove");
+		ERR_FAIL_COND_MSG(idx < 0 || uint(idx) >= numShapes, "[Jolt] body_remove_shape: Invalid index");
+		
+		shapes->RemoveShape(idx);
 	}
 }
 
@@ -243,6 +227,10 @@ void Jolt::body_clear_shapes(RID p_body) {
 	JPH::BodyID body = get_body_id(p_body);
 	ERR_FAIL_COND(body.IsInvalid());
 
-	// Simply remove it from the world.
-	Bodies().RemoveBody(body);
+	if (ShapesLock shapes = ShapesLock(Physics, body)) {
+		uint numShapes = shapes->GetNumSubShapes();
+
+		for (uint i = 0; i < numShapes; i++)
+			shapes->RemoveShape(i);	
+	}
 }

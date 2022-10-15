@@ -9,6 +9,7 @@
 #include <Jolt/Physics/Body/Body.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
+#include <Jolt/Physics/Collision/Shape/MutableCompoundShape.h>
 
 class JoltPhysicsServer3D : public GodotPhysicsServer3D {
 	GDCLASS(JoltPhysicsServer3D, GodotPhysicsServer3D);
@@ -176,6 +177,10 @@ private:
 
 	JPH::Ref<JPH::Shape> get_shape(RID p_rid) const {
 		return own_shapes.has(p_rid) ? own_shapes[p_rid] : nullptr;
+	}
+
+	const JPH::MutableCompoundShape* get_body_shapes(const JPH::BodyID& body) const {
+		return static_cast<const JPH::MutableCompoundShape*>(Bodies().GetShape(body).GetPtr());
 	}
 
 	// TODO: Use GetBodyInterfaceNoLock where possible.
