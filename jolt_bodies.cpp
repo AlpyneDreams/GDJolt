@@ -88,11 +88,9 @@ RID Jolt::body_create() {
 	// Create body and add it to the world
 	BodyID body = Bodies().CreateAndAddBody(settings, EActivation::Activate); // TODO: Don't activate
 
-	// TODO: TEMP
-	Bodies().SetLinearVelocity(body, Vec3(0.0f, -5.0f, 0.0f));
 
 	// Assign to RID
-	own_bodies.insert(rid, body.GetIndexAndSequenceNumber());
+	own_bodies.insert(rid, BodyData { body.GetIndexAndSequenceNumber() });
 	
 	return rid;
 }
@@ -233,4 +231,15 @@ void Jolt::body_clear_shapes(RID p_body) {
 		for (uint i = 0; i < numShapes; i++)
 			shapes->RemoveShape(i);	
 	}
+}
+
+
+void Jolt::body_set_state_sync_callback(RID p_body, const Callable &p_callable) {
+	printf("[Jolt] body_set_state_sync_callback\n");
+
+	if (!own_bodies.has(p_body))
+		Base::body_set_state_sync_callback(p_body, p_callable);
+	
+	BodyData& data = own_bodies[p_body];
+	data.state_callback = p_callable;
 }

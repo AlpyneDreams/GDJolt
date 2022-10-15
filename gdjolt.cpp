@@ -1,6 +1,7 @@
 #include "gdjolt.h"
 #include "jolt_util.h"
 #include "jolt_layers.h"
+#include "jolt_body_direct_state.h"
 
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Core/Factory.h>
@@ -152,6 +153,9 @@ void Jolt::finish() {
 
 void Jolt::step(real_t p_step) {
 
+	if (!active)
+		return;
+
 	// If you take larger steps than 1 / 60th of a second you need to do multiple collision steps in order to keep the simulation stable. Do 1 collision step per 1 / 60th of a second (round up).
 	const int cCollisionSteps = 1;
 
@@ -162,4 +166,40 @@ void Jolt::step(real_t p_step) {
 	Physics.Update(p_step, cCollisionSteps, cIntegrationSubSteps, TempAllocator, Jobs);
 	
 	return Base::step(0.1f * p_step);
+}
+
+void Jolt::flush_queries() {
+	
+	if (!active)
+		return;
+
+	// Call all our callbacks
+
+	// for each (active) space
+		// for each (queried) body: call_queries
+		// for each (queried) area: call_queries
+
+	for (KeyValue<RID, BodyData>& it : own_bodies) {
+		
+		BodyData& body = it.value;
+		
+		if (body.fi_callback.get_object()) {
+			// TODO
+		}
+
+		if (body.state_callback.get_object()) {
+
+			JPH::BodyLockWrite lock(Physics.GetBodyLockInterface(), JPH::BodyID(body.id));
+			if (lock.Succeeded()) {
+				JoltDirectBodyState state(lock.GetBody());
+				Variant direct_state_variant = &state;
+				const Variant *vp[1] = { &direct_state_variant };
+				Callable::CallError ce;
+				Variant rv;
+				body.state_callback.callp(vp, 1, rv, ce);
+			}
+		}
+	}
+
+	return Base::flush_queries();
 }

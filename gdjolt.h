@@ -14,10 +14,19 @@
 class JoltPhysicsServer3D : public GodotPhysicsServer3D {
 	GDCLASS(JoltPhysicsServer3D, GodotPhysicsServer3D);
 
+	struct BodyData {
+		uint32_t id;
+		Callable state_callback;
+		Callable fi_callback;
+		Variant udata;
+	};
+
 	// Using HashMap because we can't assign
 	// custom RIDs in RID_Alloc/RID_PtrOwner.
-	mutable HashMap<RID, uint32_t>		own_bodies;
-	mutable HashMap<RID, JPH::Ref<JPH::Shape>>	own_shapes;
+	mutable HashMap<RID, BodyData> own_bodies;
+	mutable HashMap<RID, JPH::Ref<JPH::Shape>> own_shapes;
+
+	bool active = true;
 
 public:
 	JoltPhysicsServer3D();
@@ -136,10 +145,10 @@ public:
 
 	virtual void body_set_max_contacts_reported(RID p_body, int p_contacts) override;
 	virtual int body_get_max_contacts_reported(RID p_body) const override;
-
+*/
 	virtual void body_set_state_sync_callback(RID p_body, const Callable &p_callable) override;
-	virtual void body_set_force_integration_callback(RID p_body, const Callable &p_callable, const Variant &p_udata = Variant()) override;
-
+	//virtual void body_set_force_integration_callback(RID p_body, const Callable &p_callable, const Variant &p_udata = Variant()) override;
+/*
 	virtual void body_set_ray_pickable(RID p_body, bool p_enable) override;
 
 	virtual bool body_test_motion(RID p_body, const MotionParameters &p_parameters, MotionResult *r_result = nullptr) override;
@@ -156,11 +165,11 @@ public:
 
 	virtual void free(RID p_rid) override;
 
-	//virtual void set_active(bool p_active) override;
+	virtual void set_active(bool p_active) override { active = p_active; }
 	virtual void init() override;
 	virtual void step(real_t p_step) override;
 	//virtual void sync() override;
-	//virtual void flush_queries() override;
+	virtual void flush_queries() override;
 	//virtual void end_sync() override;
 	virtual void finish() override;
 
@@ -172,7 +181,7 @@ private:
 	// Internals
 
 	const JPH::BodyID get_body_id(RID p_rid) const {
-		return own_bodies.has(p_rid) ? JPH::BodyID(own_bodies[p_rid]) : JPH::BodyID();
+		return own_bodies.has(p_rid) ? JPH::BodyID(own_bodies[p_rid].id) : JPH::BodyID();
 	}
 
 	JPH::Ref<JPH::Shape> get_shape(RID p_rid) const {
