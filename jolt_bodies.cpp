@@ -252,6 +252,68 @@ void Jolt::body_clear_shapes(RID p_body) {
 	}
 }
 
+void Jolt::body_set_state(RID p_body, BodyState p_state, const Variant &p_variant) {
+	
+	Base::body_set_state(p_body, p_state, p_variant);
+
+	JPH::BodyID body = get_body_id(p_body);
+	ERR_FAIL_COND(body.IsInvalid());
+
+	switch (p_state) {
+		case BODY_STATE_TRANSFORM: {
+			Transform3D t = p_variant;
+			Bodies().SetPositionAndRotation(body, ToJolt(t.origin), ToJolt(t.basis), EActivation::DontActivate);
+		} break;
+		case BODY_STATE_LINEAR_VELOCITY: {
+			Bodies().SetLinearVelocity(body, ToJolt(Vector3(p_variant)));
+		} break;
+		case BODY_STATE_ANGULAR_VELOCITY: {
+			Bodies().SetAngularVelocity(body, ToJolt(Vector3(p_variant)));
+		} break;
+		case BODY_STATE_SLEEPING: {
+			bool sleeping = p_variant;
+			if (sleeping) {
+				Bodies().DeactivateBody(body);
+			} else {
+				Bodies().ActivateBody(body);
+			}
+		} break;
+		case BODY_STATE_CAN_SLEEP: {
+			bool can_sleep = p_variant;
+			BodyLockWrite lock(Physics.GetBodyLockInterface(), body);
+			lock.GetBody().SetAllowSleeping(can_sleep);
+		} break;
+		default: {
+			Base::body_set_state(p_body, p_state, p_variant);
+		} break;
+	}
+}
+
+Variant Jolt::body_get_state(RID p_body, BodyState p_state) const {
+	JPH::BodyID body = get_body_id(p_body);
+	if (body.IsInvalid())
+		return Base::body_get_state(p_body, p_state);
+
+	switch (p_state) {
+		case BODY_STATE_TRANSFORM:
+			JPH::Vec3 pos;
+			JPH::Quat rot;
+			Bodies().GetPositionAndRotation(body, pos, rot);
+			return Transform3D(to_godot(rot), to_godot(pos));
+		case BODY_STATE_LINEAR_VELOCITY:
+			return to_godot(Bodies().GetLinearVelocity(body));
+		case BODY_STATE_ANGULAR_VELOCITY:
+			return to_godot(Bodies().GetAngularVelocity(body));
+		case BODY_STATE_SLEEPING:
+			return !Bodies().IsActive(body);
+		case BODY_STATE_CAN_SLEEP: {
+			BodyLockRead lock(Physics.GetBodyLockInterface(), body);
+			return lock.GetBody().GetAllowSleeping();
+		}
+		default:
+			return Base::body_get_state(p_body, p_state);
+	}
+}
 
 void Jolt::body_set_state_sync_callback(RID p_body, const Callable &p_callable) {
 	printf("[Jolt] body_set_state_sync_callback\n");
