@@ -178,6 +178,25 @@ void Jolt::body_set_shape(RID p_body, int idx, RID p_shape) {
 	}
 }
 
+void Jolt::body_set_shape_transform(RID p_body, int idx, const Transform3D &p_transform) {
+	Base::body_set_shape_transform(p_body, idx, p_transform);
+
+	BodyID id = get_body_id(p_body);
+	ERR_FAIL_COND(id.IsInvalid());
+
+	if (ShapesLock shapes = ShapesLock(Physics, id)) {
+		Vec3 pos = ToJolt(p_transform.origin);
+		Quat rot = ToJolt(p_transform.basis);
+
+		if (idx < 0 || uint(idx) >= shapes->GetNumSubShapes()) {
+			ERR_FAIL_MSG("[Jolt] body_set_shape_transform: Invalid index");
+		}
+
+		shapes->ModifyShape(idx, pos, rot);
+	}
+
+}
+
 int Jolt::body_get_shape_count(RID p_body) const {
 	BodyID body = get_body_id(p_body);
 	ERR_FAIL_COND_V(body.IsInvalid(), Base::body_get_shape_count(p_body));

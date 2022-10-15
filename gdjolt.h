@@ -72,7 +72,7 @@ public:
 
 	virtual void body_add_shape(RID p_body, RID p_shape, const Transform3D &p_transform = Transform3D(), bool p_disabled = false) override;
 	virtual void body_set_shape(RID p_body, int p_shape_idx, RID p_shape) override;
-	//virtual void body_set_shape_transform(RID p_body, int p_shape_idx, const Transform3D &p_transform) override;
+	virtual void body_set_shape_transform(RID p_body, int p_shape_idx, const Transform3D &p_transform) override;
 
 	virtual int body_get_shape_count(RID p_body) const override;
 	virtual RID body_get_shape(RID p_body, int p_shape_idx) const override;
