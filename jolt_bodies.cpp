@@ -19,6 +19,9 @@ using namespace JPH;
 // a dummy shape and set this userdata value to indicate a shapeless body.
 #define NULL_SHAPE UINT32_MAX
 
+// Dummy shape - placeholder for null shapes
+#define NEW_DUMMY_SHAPE() (new JPH::SphereShape(0.001f))
+
 // Locks a body to mutate its shapes.
 struct ShapesLock {
 	const BodyInterface& bodies;
@@ -54,7 +57,7 @@ struct ShapesLock {
 			// Last shape removed, add a null shape
 			if (shapes->GetNumSubShapes() == 0) {
 				printf("[Jolt] Removed all shapes from body %u, adding null shape.\n", id.GetIndex());
-				shapes->AddShape(Vec3::sZero(), Quat::sIdentity(), new SphereShape(1.0f), NULL_SHAPE);
+				shapes->AddShape(Vec3::sZero(), Quat::sIdentity(), NEW_DUMMY_SHAPE(), NULL_SHAPE);
 				shapes->SetUserData(NULL_SHAPE);
 			}
 
@@ -75,7 +78,7 @@ RID Jolt::body_create() {
 	MutableCompoundShapeSettings* shapes = new MutableCompoundShapeSettings;
 
 	// TODO: Should start with no shapes! But JPH requires at least one shape.
-	shapes->AddShape(Vec3::sZero(), Quat::sIdentity(), new SphereShape(1.0f), NULL_SHAPE);
+	shapes->AddShape(Vec3::sZero(), Quat::sIdentity(), NEW_DUMMY_SHAPE(), NULL_SHAPE);
 	shapes->mUserData = NULL_SHAPE;
 	
 	// Create body
@@ -87,7 +90,6 @@ RID Jolt::body_create() {
 	
 	// Create body and add it to the world
 	BodyID body = Bodies().CreateAndAddBody(settings, EActivation::Activate); // TODO: Don't activate
-
 
 	// Assign to RID
 	own_bodies.insert(rid, BodyData { body.GetIndexAndSequenceNumber() });
