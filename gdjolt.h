@@ -16,7 +16,7 @@ class JoltPhysicsServer3D : public GodotPhysicsServer3D {
 	// Using HashMap because we can't assign
 	// custom RIDs in RID_Alloc/RID_PtrOwner.
 	mutable HashMap<RID, uint32_t>		own_bodies;
-	mutable HashMap<RID, JPH::Shape*>	own_shapes;
+	mutable HashMap<RID, JPH::Ref<JPH::Shape>>	own_shapes;
 
 public:
 	JoltPhysicsServer3D();
@@ -174,7 +174,7 @@ private:
 		return own_bodies.has(p_rid) ? JPH::BodyID(own_bodies[p_rid]) : JPH::BodyID();
 	}
 
-	JPH::Shape* get_shape(RID p_rid) const {
+	JPH::Ref<JPH::Shape> get_shape(RID p_rid) const {
 		return own_shapes.has(p_rid) ? own_shapes[p_rid] : nullptr;
 	}
 

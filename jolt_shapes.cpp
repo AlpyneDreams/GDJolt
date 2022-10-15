@@ -25,13 +25,9 @@ using Base = GodotPhysicsServer3D;
 	}
 
 // TODO: This may cause fragmentation. Jolt doesn't provide placement new...
-#define JOLT_SHAPE_RECREATE(S, rid, pointer, ...) \
-	{                                             \
-		S *subshape = static_cast<S *>(pointer);  \
-		delete subshape;                          \
-		pointer = new S(__VA_ARGS__);             \
-		own_shapes[rid] = pointer;                \
-	}
+// Implicitly unrefs (and, ideally, deletes) the previous shape.
+#define JOLT_SHAPE_RECREATE(S, rid, ref, ...) \
+	own_shapes[rid] = new S(__VA_ARGS__);
 
 //JOLT_SHAPE_CREATE(world_boundary, ...)
 //JOLT_SHAPE_CREATE(separation_ray, ...)
